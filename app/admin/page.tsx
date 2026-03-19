@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Nav from '@/components/Nav'
 import type { UserProfile } from '@/lib/types'
-import { format, subDays } from 'date-fns'
+import { format } from 'date-fns'
 
 interface Stats {
   totalOut: number
