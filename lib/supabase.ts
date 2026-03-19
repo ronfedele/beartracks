@@ -9,8 +9,8 @@ export function createClient() {
   return createBrowserClient(supabaseUrl, supabaseAnonKey)
 }
 
-export function createServerClientInstance() {
-  const cookieStore = cookies()
+export async function createServerClientInstance() {
+  const cookieStore = await cookies()
   return createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() { return cookieStore.getAll() },
