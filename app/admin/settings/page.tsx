@@ -4,16 +4,8 @@ import { createClient } from '@/lib/supabase'
 import Nav from '@/components/Nav'
 import type { UserProfile } from '@/lib/types'
 
-interface SettingField {
-  key: string
-  label: string
-  description: string
-  type: 'toggle' | 'number' | 'text' | 'select'
-  options?: { value: string; label: string }[]
-}
-
-const FIELDS: SettingField[] = [
-  { key: 'enable_time_restrictions', label: 'Time Restrictions', description: 'Block sign-outs in the first and last N minutes of each period.', type: 'toggle' },
+const FIELDS = [
+  { key: 'enable_time_restrictions', label: 'Time Restrictions', description: 'Block sign-outs in first/last N minutes of each period.', type: 'toggle' },
   { key: 'first_last_minutes', label: 'Block Window (minutes)', description: 'Minutes at start and end of each period where sign-outs are blocked.', type: 'number' },
   { key: 'active_schedule_type', label: 'Schedule Override', description: 'Auto uses the calendar. Manual override forces a specific schedule.', type: 'select', options: [
     { value: 'auto', label: 'Auto (use calendar)' },
@@ -21,7 +13,6 @@ const FIELDS: SettingField[] = [
     { value: 'minimum', label: 'Force Minimum Day' },
     { value: 'rally', label: 'Force Rally' },
   ]},
-  { key: 'lock_teacher_links', label: 'Lock Teacher Links', description: 'Prevent terminal kiosk from being accessed without auth.', type: 'toggle' },
   { key: 'yellow_min', label: 'Yellow Alert (min)', description: 'Minutes out before pass turns yellow.', type: 'number' },
   { key: 'orange_min', label: 'Orange Alert (min)', description: 'Minutes out before pass turns orange.', type: 'number' },
   { key: 'school_name', label: 'School Name', description: 'Displayed in headers and reports.', type: 'text' },
@@ -34,8 +25,12 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState<string | null>(null)
   const [users, setUsers] = useState<any[]>([])
   const [rooms, setRooms] = useState<any[]>([])
-  const [newUser, setNewUser] = useState({ email: '', password: '', role: 'teacher', room_id: '' })
-  const [addingUser, setAddingUser] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
+  const [pwUser, setPwUser] = useState<any | null>(null)
+  const [newPw, setNewPw] = useState('')
+  const [pwMsg, setPwMsg] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
 
   useEffect(() => {
     async function init() {
@@ -45,17 +40,15 @@ export default function AdminSettingsPage() {
       const { data: prof } = await supabase.from('user_profiles').select('*').eq('id', user.id).maybeSingle()
       if (prof?.role !== 'admin') { window.location.href = '/'; return }
       setProfile(prof as any)
-
       const [{ data: settingsData }, { data: usersData }, { data: roomsData }] = await Promise.all([
         supabase.from('settings').select('*'),
         supabase.from('user_profiles').select('*, room:rooms(room_number)').order('role'),
         supabase.from('rooms').select('id, room_number, teacher_name').order('room_number'),
       ])
-
       const map: Record<string, string> = {}
       ;(settingsData ?? []).forEach((s: any) => { map[s.key] = s.value })
       setSettings(map)
-      setUsers(usersData ?? [])
+      setUsers((usersData ?? []).filter((u: any) => u.role !== 'terminal'))
       setRooms(roomsData ?? [])
       setLoading(false)
     }
@@ -70,45 +63,46 @@ export default function AdminSettingsPage() {
     setTimeout(() => setSaved(null), 2000)
   }
 
-  async function handleAddUser(e: React.FormEvent) {
-    e.preventDefault()
-    setAddingUser(true)
+  async function handleMasterReset() {
+    if (!confirm('Reset ALL terminal/room accounts to BearTracks2025!? This cannot be undone.')) return
+    setResetLoading(true)
+    setResetMsg('')
     const supabase = createClient()
-    // NOTE: In production, use Supabase Admin API via Edge Function to create users
-    // For demo, we insert a profile record assuming auth user exists
-    const { data: authData, error } = await supabase.auth.admin?.createUser?.({
-      email: newUser.email,
-      password: newUser.password,
-      email_confirm: true,
-    }) as any ?? { data: null, error: { message: 'Admin API not available client-side. Create auth user in Supabase dashboard.' } }
-
+    const { data, error } = await supabase.rpc('admin_reset_terminal_passwords')
     if (error) {
-      alert(`Note: ${error.message}\n\nCreate the auth user manually in your Supabase dashboard, then come back here and add their profile.`)
-      setAddingUser(false)
-      return
+      setResetMsg(`Error: ${error.message}`)
+    } else {
+      setResetMsg(`✅ Reset ${data} terminal accounts to BearTracks2025!`)
     }
+    setResetLoading(false)
+  }
 
-    if (authData?.user) {
-      await supabase.from('user_profiles').insert({
-        id: authData.user.id,
-        email: newUser.email,
-        role: newUser.role,
-        room_id: newUser.room_id || null,
-        display_name: newUser.email.split('@')[0],
-      })
+  async function handlePasswordReset(e: React.FormEvent) {
+    e.preventDefault()
+    if (!pwUser || !newPw || newPw.length < 8) { setPwMsg('Password must be at least 8 characters.'); return }
+    setPwLoading(true)
+    setPwMsg('')
+    const supabase = createClient()
+    // Admin resets via direct SQL update using the helper function approach
+    // We call update_own_password on behalf of the user via a custom admin RPC
+    const { error } = await supabase.rpc('admin_set_user_password', {
+      target_user_id: pwUser.id,
+      new_password: newPw,
+    })
+    if (error) {
+      setPwMsg(`Error: ${error.message}`)
+    } else {
+      setPwMsg(`✅ Password updated for ${pwUser.email}`)
+      setNewPw('')
+      setPwUser(null)
     }
-    setNewUser({ email: '', password: '', role: 'teacher', room_id: '' })
-    setAddingUser(false)
-    // Reload users
-    const { data } = await createClient().from('user_profiles').select('*, room:rooms(room_number)').order('role')
-    setUsers(data ?? [])
+    setPwLoading(false)
   }
 
   const roleColors: Record<string, string> = {
     admin: 'bg-purple-100 text-purple-800',
     monitor: 'bg-blue-100 text-blue-800',
     teacher: 'bg-green-100 text-green-800',
-    terminal: 'bg-orange-100 text-orange-800',
   }
 
   if (loading) return <div className="min-h-screen bg-bear-cream flex items-center justify-center"><div className="text-bear-muted">Loading…</div></div>
@@ -125,7 +119,7 @@ export default function AdminSettingsPage() {
         {/* System settings */}
         <div className="card space-y-6">
           <h2 className="text-lg font-bold text-bear-dark border-b border-orange-100 pb-3">System Settings</h2>
-          {FIELDS.map(field => (
+          {FIELDS.map((field: any) => (
             <div key={field.key} className="flex items-start gap-4">
               <div className="flex-1">
                 <div className="font-semibold text-bear-dark text-sm">{field.label}</div>
@@ -151,7 +145,7 @@ export default function AdminSettingsPage() {
                 {field.type === 'select' && (
                   <select value={settings[field.key] ?? ''} onChange={e => updateSetting(field.key, e.target.value)}
                     className="border border-orange-200 rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white">
-                    {field.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    {field.options?.map((o: any) => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 )}
                 {saved === field.key && <span className="text-xs text-green-600 font-medium">Saved ✓</span>}
@@ -160,50 +154,68 @@ export default function AdminSettingsPage() {
           ))}
         </div>
 
-        {/* User management */}
-        <div className="card space-y-5">
-          <h2 className="text-lg font-bold text-bear-dark border-b border-orange-100 pb-3">User Accounts</h2>
-          <p className="text-xs text-bear-muted bg-amber-50 border border-amber-200 rounded-xl px-4 py-2">
-            <strong>Note:</strong> To create users, first create them in your Supabase Auth dashboard, then their profile will auto-appear here after first login. Or use the form below (requires Supabase Service Role key configured).
-          </p>
+        {/* Master Terminal Reset */}
+        <div className="card space-y-4">
+          <h2 className="text-lg font-bold text-bear-dark border-b border-orange-100 pb-3">🔑 Master Terminal Reset</h2>
+          <p className="text-sm text-bear-muted">Resets ALL room/terminal accounts back to the default password <code className="bg-orange-50 px-1 rounded">BearTracks2025!</code>. Use this when a room kiosk password is forgotten.</p>
+          {resetMsg && (
+            <div className={`text-sm rounded-xl px-4 py-2 ${resetMsg.startsWith('✅') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+              {resetMsg}
+            </div>
+          )}
+          <button
+            onClick={handleMasterReset}
+            disabled={resetLoading}
+            className="bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-semibold text-sm px-5 py-2 rounded-xl transition-colors"
+          >
+            {resetLoading ? 'Resetting…' : 'Reset All Terminal Passwords'}
+          </button>
+        </div>
 
-          {/* Existing users */}
-          <div className="space-y-2">
+        {/* Password Reset for admin/monitor/teacher accounts */}
+        <div className="card space-y-5">
+          <h2 className="text-lg font-bold text-bear-dark border-b border-orange-100 pb-3">🔒 Reset User Password</h2>
+          <p className="text-sm text-bear-muted">Reset the password for any admin, monitor, or teacher account. Terminal accounts use the Master Reset above.</p>
+
+          {/* User list */}
+          <div className="space-y-2 max-h-52 overflow-y-auto">
             {users.map(u => (
-              <div key={u.id} className="flex items-center gap-3 py-2 px-3 bg-gray-50 rounded-xl">
+              <div key={u.id}
+                onClick={() => { setPwUser(u); setNewPw(''); setPwMsg('') }}
+                className={`flex items-center gap-3 py-2 px-3 rounded-xl cursor-pointer transition-colors ${pwUser?.id === u.id ? 'bg-bear-orange/10 border border-bear-orange' : 'bg-gray-50 hover:bg-orange-50 border border-transparent'}`}
+              >
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${roleColors[u.role] ?? 'bg-gray-100 text-gray-600'}`}>{u.role}</span>
-                <span className="flex-1 text-sm text-bear-dark font-medium">{u.email}</span>
+                <span className="flex-1 text-sm text-bear-dark">{u.email}</span>
                 {u.room && <span className="text-xs text-bear-muted">{(u.room as any).room_number}</span>}
               </div>
             ))}
           </div>
 
-          {/* Add user form */}
-          <form onSubmit={handleAddUser} className="space-y-3 border-t border-orange-100 pt-4">
-            <h3 className="text-sm font-bold text-bear-dark">Add User Profile</h3>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <input type="email" placeholder="Email" value={newUser.email} onChange={e => setNewUser(u => ({ ...u, email: e.target.value }))} required
-                className="border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white" />
-              <input type="password" placeholder="Password" value={newUser.password} onChange={e => setNewUser(u => ({ ...u, password: e.target.value }))}
-                className="border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white" />
-              <select value={newUser.role} onChange={e => setNewUser(u => ({ ...u, role: e.target.value }))}
-                className="border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white">
-                <option value="teacher">Teacher</option>
-                <option value="terminal">Terminal</option>
-                <option value="monitor">Monitor</option>
-                <option value="admin">Admin</option>
-              </select>
-              <select value={newUser.room_id} onChange={e => setNewUser(u => ({ ...u, room_id: e.target.value }))}
-                className="border border-orange-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white">
-                <option value="">— Room (teacher/terminal only) —</option>
-                {rooms.map(r => <option key={r.id} value={r.id}>{r.room_number} · {r.teacher_name}</option>)}
-              </select>
-            </div>
-            <button type="submit" disabled={addingUser}
-              className="bg-bear-orange hover:bg-orange-600 disabled:opacity-60 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors">
-              {addingUser ? 'Creating…' : 'Create User'}
-            </button>
-          </form>
+          {pwUser && (
+            <form onSubmit={handlePasswordReset} className="space-y-3 border-t border-orange-100 pt-4">
+              <p className="text-sm font-semibold text-bear-dark">Setting new password for: <span className="text-bear-orange">{pwUser.email}</span></p>
+              <div className="flex gap-3">
+                <input
+                  type="password"
+                  placeholder="New password (min 8 chars)"
+                  value={newPw}
+                  onChange={e => setNewPw(e.target.value)}
+                  minLength={8}
+                  className="flex-1 border border-orange-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-bear-orange bg-white"
+                />
+                <button type="submit" disabled={pwLoading || newPw.length < 8}
+                  className="bg-bear-orange hover:bg-orange-600 disabled:opacity-50 text-white text-sm font-semibold px-5 py-2 rounded-xl transition-colors whitespace-nowrap">
+                  {pwLoading ? 'Saving…' : 'Set Password'}
+                </button>
+                <button type="button" onClick={() => setPwUser(null)} className="text-sm text-bear-muted hover:text-bear-dark px-2">Cancel</button>
+              </div>
+              {pwMsg && (
+                <div className={`text-sm rounded-xl px-4 py-2 ${pwMsg.startsWith('✅') ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                  {pwMsg}
+                </div>
+              )}
+            </form>
+          )}
         </div>
       </main>
     </div>

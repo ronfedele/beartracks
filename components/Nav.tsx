@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import type { UserRole } from '@/lib/types'
 import { clsx } from 'clsx'
+import ChangePassword from './ChangePassword'
 
 interface NavProps {
   role: UserRole
@@ -13,24 +14,22 @@ interface NavProps {
 
 const navLinks: Record<UserRole, { href: string; label: string; icon: string }[]> = {
   admin: [
-    { href: '/admin',          label: 'Dashboard',  icon: '📊' },
-    { href: '/admin/students', label: 'Students',   icon: '👥' },
-    { href: '/admin/rooms',    label: 'Rooms',      icon: '🚪' },
-    { href: '/admin/calendar', label: 'Calendar',   icon: '📅' },
-    { href: '/admin/reports',  label: 'Reports',    icon: '📋' },
-    { href: '/admin/settings', label: 'Settings',   icon: '⚙️' },
-    { href: '/monitor',        label: 'Monitor',    icon: '🖥️' },
+    { href: '/admin',             label: 'Dashboard',  icon: '📊' },
+    { href: '/admin/students',    label: 'Students',   icon: '👥' },
+    { href: '/admin/schedules',   label: 'Schedules',  icon: '🗓️' },
+    { href: '/admin/rooms',       label: 'Rooms',      icon: '🚪' },
+    { href: '/admin/calendar',    label: 'Calendar',   icon: '📅' },
+    { href: '/admin/settings',    label: 'Settings',   icon: '⚙️' },
+    { href: '/monitor',           label: 'Monitor',    icon: '🖥️' },
   ],
   monitor: [
-    { href: '/monitor',         label: 'Live View',  icon: '🖥️' },
-    { href: '/monitor/log',     label: 'Log',        icon: '📋' },
-    { href: '/monitor/reports', label: 'Reports',    icon: '📊' },
-    { href: '/teacher',         label: 'Teacher',    icon: '🏫' },
+    { href: '/monitor',           label: 'Live View',  icon: '🖥️' },
+    { href: '/monitor/log',       label: 'Log',        icon: '📋' },
+    { href: '/teacher',           label: 'Teacher',    icon: '🏫' },
   ],
   teacher: [
-    { href: '/teacher',         label: 'My Class',   icon: '🏫' },
-    { href: '/teacher/log',     label: 'Pass Log',   icon: '📋' },
-    { href: '/teacher/signout', label: 'Sign Out',   icon: '✍️' },
+    { href: '/teacher',           label: 'My Class',   icon: '🏫' },
+    { href: '/teacher/log',       label: 'Pass Log',   icon: '📋' },
   ],
   terminal: [],
 }
@@ -74,7 +73,7 @@ export default function Nav({ role, displayName, roomNumber }: NavProps) {
           ))}
         </div>
 
-        <div className="flex items-center gap-3 ml-4 shrink-0">
+        <div className="flex items-center gap-2 ml-4 shrink-0">
           {roomNumber && (
             <span className="text-xs text-bear-muted font-mono bg-white/10 px-2 py-1 rounded-lg">
               {roomNumber}
@@ -84,6 +83,8 @@ export default function Nav({ role, displayName, roomNumber }: NavProps) {
             <div className="text-xs text-white font-medium leading-none">{displayName}</div>
             <div className="text-xs text-bear-muted capitalize mt-0.5">{role}</div>
           </div>
+          {/* Change Password for non-terminal accounts */}
+          {role !== 'terminal' && <ChangePassword />}
           <button
             onClick={handleLogout}
             className="text-xs text-white/40 hover:text-white/80 transition-colors px-2 py-1"

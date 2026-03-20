@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import Nav from '@/components/Nav'
 import type { UserProfile } from '@/lib/types'
-import { format } from 'date-fns'
+import { format, subDays } from 'date-fns'
 
 interface Stats {
   totalOut: number
@@ -67,12 +67,13 @@ export default function AdminPage() {
   ]
 
   const adminLinks = [
-    { href: '/admin/students', label: 'Manage Students', icon: '👥', desc: 'Add, edit, import students & flags' },
-    { href: '/admin/rooms',    label: 'Manage Rooms',    icon: '🚪', desc: 'Teachers, room emails, bell groups' },
-    { href: '/admin/calendar', label: 'School Calendar', icon: '📅', desc: 'Set Regular / Minimum / Rally days' },
-    { href: '/admin/settings', label: 'Settings',        icon: '⚙️', desc: 'Time restrictions, theme, pass rules' },
-    { href: '/monitor',        label: 'Live Monitor',    icon: '🖥️', desc: 'Real-time campus pass view' },
-    { href: '/monitor/log',    label: 'Full Log',        icon: '📋', desc: 'All pass history with filters' },
+    { href: '/admin/students',  label: 'Manage Students', icon: '👥', desc: 'Add, edit, import students & flags' },
+    { href: '/admin/schedules', label: 'Student Schedules',icon: '🗓️', desc: 'Assign rooms per period per student' },
+    { href: '/admin/rooms',     label: 'Manage Rooms',    icon: '🚪', desc: 'Teachers, room emails, bell groups' },
+    { href: '/admin/calendar',  label: 'School Calendar', icon: '📅', desc: 'Set Regular / Minimum / Rally days' },
+    { href: '/admin/settings',  label: 'Settings',        icon: '⚙️', desc: 'Time restrictions, passwords, pass rules' },
+    { href: '/monitor',         label: 'Live Monitor',    icon: '🖥️', desc: 'Real-time campus pass view' },
+    { href: '/monitor/log',     label: 'Full Log',        icon: '📋', desc: 'All pass history with filters' },
   ]
 
   if (loading) return <div className="min-h-screen bg-bear-cream flex items-center justify-center"><div className="text-bear-muted">Loading…</div></div>
