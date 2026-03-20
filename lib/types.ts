@@ -8,7 +8,7 @@ export interface Room {
   room_email: string
   teacher_name: string
   teacher_email: string
-  bell_schedule: 7 | 8
+  bell_schedule: 7 | 8 | 9
   grade_group: string | null
 }
 
