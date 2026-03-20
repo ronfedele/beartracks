@@ -20,6 +20,7 @@ const navLinks: Record<UserRole, { href: string; label: string; icon: string }[]
     { href: '/admin/rooms',       label: 'Rooms',      icon: '🚪' },
     { href: '/admin/calendar',      label: 'Calendar',      icon: '📅' },
     { href: '/admin/bell-schedules', label: 'Bell Schedules', icon: '🔔' },
+    { href: '/admin/accounts',      label: 'Accounts',      icon: '👤' },
     { href: '/admin/reports',     label: 'Reports',    icon: '📈' },
     { href: '/admin/settings',    label: 'Settings',   icon: '⚙️' },
     { href: '/monitor',           label: 'Monitor',    icon: '🖥️' },

@@ -72,6 +72,7 @@ export default function AdminPage() {
     { href: '/admin/rooms',     label: 'Manage Rooms',    icon: '🚪', desc: 'Teachers, room emails, bell groups' },
     { href: '/admin/calendar',      label: 'School Calendar',  icon: '📅', desc: 'Set Regular / Minimum / Rally days' },
     { href: '/admin/bell-schedules', label: 'Bell Schedules',   icon: '🔔', desc: 'Edit period times for all day types' },
+    { href: '/admin/accounts',      label: 'Accounts',         icon: '👤', desc: 'Manage all user accounts, roles, and permissions' },
     { href: '/admin/settings',  label: 'Settings',        icon: '⚙️', desc: 'Time restrictions, passwords, pass rules' },
     { href: '/monitor',         label: 'Live Monitor',    icon: '🖥️', desc: 'Real-time campus pass view' },
     { href: '/monitor/log',     label: 'Full Log',        icon: '📋', desc: 'All pass history with filters' },

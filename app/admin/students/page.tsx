@@ -25,6 +25,7 @@ export default function AdminStudentsPage() {
   const [saveMsg, setSaveMsg] = useState('')
 
   const [importStatus, setImportStatus] = useState('')
+  const [canUpload, setCanUpload] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function AdminStudentsPage() {
       const { data:prof } = await supabase.from('user_profiles').select('*').eq('id',user.id).maybeSingle()
       if (prof?.role!=='admin') { window.location.href='/'; return }
       setProfile(prof as any)
+      setCanUpload(prof.role === 'admin' || prof.can_upload_students === true)
       await loadAll(supabase)
       setLoading(false)
     }
@@ -153,10 +155,12 @@ export default function AdminStudentsPage() {
             <p className="text-bear-muted mt-1">{filtered.length} of {students.length} students</p>
           </div>
           <div className="ml-auto flex gap-2 flex-wrap">
-            <label className="bg-white border border-orange-200 hover:border-orange-400 text-bear-dark text-sm font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors">
-              Import CSV
-              <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
-            </label>
+            {canUpload && (
+              <label className="bg-white border border-orange-200 hover:border-orange-400 text-bear-dark text-sm font-semibold px-4 py-2 rounded-xl cursor-pointer transition-colors">
+                Import CSV
+                <input ref={fileRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
+              </label>
+            )}
             <button onClick={()=>openEdit()} className="bg-bear-orange hover:bg-orange-600 text-white text-sm font-semibold px-4 py-2 rounded-xl transition-colors">+ Add Student</button>
           </div>
         </div>
