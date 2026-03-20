@@ -1,13 +1,13 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase'
-import { requestPass, signStudentIn, getTodayDayType } from '@/lib/passes'
+import { requestPass, signStudentIn, getTodayDayType, getEffectiveMinutes } from '@/lib/passes'
 import Nav from '@/components/Nav'
 import type { Student, Destination, Pass, Room, UserProfile } from '@/lib/types'
 
 function timeToMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m }
-function getCurrentPeriod(periods: number[]): number | null {
-  const n = new Date().getHours() * 60 + new Date().getMinutes()
+async function getCurrentPeriodAsync(periods: number[]): Promise<number | null> {
+  const n = await getEffectiveMinutes()
   for (let i = 0; i < periods.length - 1; i++) if (n >= periods[i] && n < periods[i+1]) return i+1
   return null
 }
@@ -57,7 +57,7 @@ export default function TeacherPage() {
       const { data: sc } = await supabase.from('schedules').select('*').eq('grade_group',rd.bell_schedule).eq('profile',dayType).maybeSingle()
       if (sc) periods=[sc.day_start,sc.p1,sc.p2,sc.p3,sc.p4,sc.p5,sc.p6].map(timeToMin)
     }
-    const period = getCurrentPeriod(periods); setCurrentPeriod(period)
+    const period = await getCurrentPeriodAsync(periods); setCurrentPeriod(period)
     if (period) {
       const { data: ss } = await supabase.from('student_schedules').select('student_id').eq('room_id',roomId).eq('period',period)
       const ids = (ss??[]).map((s:any)=>s.student_id)

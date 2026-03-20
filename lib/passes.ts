@@ -10,6 +10,20 @@ function timeToMinutes(t: string): number {
   return h * 60 + m
 }
 
+// Returns the current time-of-day in minutes, respecting the test clock override
+export async function getEffectiveMinutes(): Promise<number> {
+  const supabase = createClient()
+  const { data: enabled } = await supabase.from('settings').select('value').eq('key', 'test_clock_enabled').maybeSingle()
+  if (enabled?.value === 'true') {
+    const { data: clockTime } = await supabase.from('settings').select('value').eq('key', 'test_clock_time').maybeSingle()
+    if (clockTime?.value && /^\d{1,2}:\d{2}$/.test(clockTime.value)) {
+      return timeToMinutes(clockTime.value)
+    }
+  }
+  const now = new Date()
+  return now.getHours() * 60 + now.getMinutes()
+}
+
 export async function getTodayDayType(): Promise<DayType> {
   const supabase = createClient()
   const today = new Date().toISOString().split('T')[0]
@@ -52,7 +66,7 @@ export async function getTimeRestrictionDenial(roomId: string, dayType: DayType)
   const blockMin = parseInt(s2?.value ?? '10', 10)
   const result = await getRoomPeriodTimes(roomId, dayType)
   if (!result) return null
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const nowMin = await getEffectiveMinutes()
   for (let i = 0; i < result.periods.length - 1; i++) {
     const start = result.periods[i], end = result.periods[i + 1]
     if (nowMin >= start && nowMin < end) {
