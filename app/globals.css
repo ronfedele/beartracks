@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Default values — overridden by layout.tsx which fetches from DB */
+:root {
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body:    'DM Sans', system-ui, sans-serif;
+  --font-mono:    'DM Mono', monospace;
+
+  --bear-orange: #FF5910;
+  --bear-dark:   #002D72;
+  --bear-gold:   #F5A623;
+  --bear-light:  #FEF3E8;
+  --bear-muted:  #8C6A3F;
+  --bear-cream:  #FBF0E3;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bear-cream);
+  color: #1a1a2e;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Paw-print background utility */
+.paw-bg {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60' opacity='0.04'%3E%3Ccircle cx='30' cy='38' r='12'/%3E%3Ccircle cx='12' cy='22' r='7'/%3E%3Ccircle cx='48' cy='22' r='7'/%3E%3Ccircle cx='22' cy='14' r='6'/%3E%3Ccircle cx='38' cy='14' r='6'/%3E%3C/svg%3E");
+}
+
+/* Status badges */
+.badge-out     { @apply bg-amber-100 text-amber-800 border border-amber-200; }
+.badge-in      { @apply bg-green-100 text-green-800 border border-green-200; }
+.badge-denied  { @apply bg-red-100 text-red-800 border border-red-200; }
+.badge-closed  { @apply bg-gray-100 text-gray-600 border border-gray-200; }
+
+/* Card base */
+.card {
+  @apply bg-white rounded-2xl shadow-sm p-5;
+  border: 1px solid color-mix(in srgb, var(--bear-orange) 20%, white);
+}
+
+/* Elapsed time coloring */
+.elapsed-normal { @apply text-green-700; }
+.elapsed-yellow { @apply text-yellow-600; }
+.elapsed-orange { @apply text-orange-500; }
+.elapsed-red    { @apply text-red-600 font-semibold; }
+
+/* Terminal — background uses the secondary color from settings */
+.terminal-screen {
+  background: linear-gradient(
+    160deg,
+    var(--bear-dark) 0%,
+    color-mix(in srgb, var(--bear-dark) 75%, black) 100%
+  );
+  min-height: 100vh;
+}
+
+/* Approval animations */
+@keyframes approvedPulse {
+  0%   { background-color: rgba(59, 130, 246, 0.1); }
+  50%  { background-color: rgba(59, 130, 246, 0.25); }
+  100% { background-color: rgba(59, 130, 246, 0.1); }
+}
+.approved-flash { animation: approvedPulse 0.8s ease-in-out 2; }
+
+@keyframes deniedShake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-8px); }
+  75%       { transform: translateX(8px); }
+}
+.denied-shake { animation: deniedShake 0.4s ease-in-out 2; }

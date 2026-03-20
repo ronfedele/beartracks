@@ -9,11 +9,16 @@ module.exports = {
     extend: {
       colors: {
         bear: {
-          orange: '#E8640A',
-          dark:   '#1A1208',
+          // These reference CSS variables set by layout.tsx from DB settings.
+          // Tailwind emits e.g. background-color: var(--bear-orange)
+          // so changing the variable at runtime changes every element.
+          orange: 'var(--bear-orange)',
+          dark:   'var(--bear-dark)',
+          // Static colors unchanged
           gold:   '#F5A623',
           light:  '#FEF3E8',
           muted:  '#8C6A3F',
+          cream:  '#FBF0E3',
         },
       },
       fontFamily: {
