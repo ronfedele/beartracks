@@ -25,7 +25,7 @@ export default function TerminalPage() {
   })
   const [activeOut, setActiveOut] = useState<(Pass & { student: Student })[]>([])
   const [currentTime, setCurrentTime] = useState(new Date())
-  const idleTimer = useRef<NodeJS.Timeout>()
+  const idleTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Load room from URL param or terminal auth
