@@ -45,17 +45,32 @@ async function getRoomPeriodTimes(roomId: string, dayType: DayType): Promise<{ p
     const s8 = scheds.find((s: any) => s.grade_group === 8)
     if (!s7 || !s8) return null
     const groups = [vc.p1_group, vc.p2_group, vc.p3_group, vc.p4_group, vc.p5_group, vc.p6_group]
-    const keys = ['day_start', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6']
-    const periods: number[] = [timeToMinutes(s7.day_start)]
+    // Build pairs [p1_start, p1_end, p2_start, p2_end, ...] from varied config
+    const periods: number[] = []
     for (let i = 0; i < 6; i++) {
-      periods.push(timeToMinutes((groups[i] === 7 ? s7 : s8)[keys[i + 1]]))
+      const src = groups[i] === 7 ? s7 : s8
+      const startKey = `p${i+1}_start`
+      const endKey   = `p${i+1}_end`
+      periods.push(timeToMinutes(src[startKey] ?? src.day_start))
+      periods.push(timeToMinutes(src[endKey]))
     }
     return { periods }
   }
 
   const { data: sched } = await supabase.from('schedules').select('*').eq('grade_group', room.bell_schedule).eq('profile', dayType).maybeSingle()
   if (!sched) return null
-  return { periods: [sched.day_start, sched.p1, sched.p2, sched.p3, sched.p4, sched.p5, sched.p6].map(timeToMinutes) }
+  // Use explicit start/end times per period
+  // periods array: [p1_start, p1_end, p2_start, p2_end, ...] — pairs for each period
+  return {
+    periods: [
+      sched.p1_start ?? sched.day_start, sched.p1_end,
+      sched.p2_start ?? sched.p1_end,   sched.p2_end,
+      sched.p3_start ?? sched.p2_end,   sched.p3_end,
+      sched.p4_start ?? sched.p3_end,   sched.p4_end,
+      sched.p5_start ?? sched.p4_end,   sched.p5_end,
+      sched.p6_start ?? sched.p5_end,   sched.p6_end,
+    ].map(timeToMinutes)
+  }
 }
 
 export async function getTimeRestrictionDenial(roomId: string, dayType: DayType): Promise<string | null> {
@@ -67,12 +82,15 @@ export async function getTimeRestrictionDenial(roomId: string, dayType: DayType)
   const result = await getRoomPeriodTimes(roomId, dayType)
   if (!result) return null
   const nowMin = await getEffectiveMinutes()
-  for (let i = 0; i < result.periods.length - 1; i++) {
+  // periods are pairs: [p1_start, p1_end, p2_start, p2_end, ...]
+  for (let i = 0; i < result.periods.length; i += 2) {
     const start = result.periods[i], end = result.periods[i + 1]
+    if (!start || !end) continue
     if (nowMin >= start && nowMin < end) {
+      const periodNum = (i / 2) + 1
       const minutesIn = nowMin - start, minutesLeft = end - nowMin
-      if (minutesIn < blockMin) return `Cannot sign out in the first ${blockMin} minutes of class (${minutesIn} min into period ${i + 1})`
-      if (minutesLeft < blockMin) return `Cannot sign out in the last ${blockMin} minutes of class (${minutesLeft} min left in period ${i + 1})`
+      if (minutesIn < blockMin) return `Cannot sign out in the first ${blockMin} minutes of class (${minutesIn} min into period ${periodNum})`
+      if (minutesLeft < blockMin) return `Cannot sign out in the last ${blockMin} minutes of class (${minutesLeft} min left in period ${periodNum})`
       return null
     }
   }

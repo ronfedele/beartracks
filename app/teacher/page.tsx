@@ -8,7 +8,10 @@ import type { Student, Destination, Pass, Room, UserProfile } from '@/lib/types'
 function timeToMin(t: string) { const [h, m] = t.split(':').map(Number); return h * 60 + m }
 async function getCurrentPeriodAsync(periods: number[]): Promise<number | null> {
   const n = await getEffectiveMinutes()
-  for (let i = 0; i < periods.length - 1; i++) if (n >= periods[i] && n < periods[i+1]) return i+1
+  // periods are pairs: [p1_start, p1_end, p2_start, p2_end, ...]
+  for (let i = 0; i < periods.length; i += 2) {
+    if (n >= periods[i] && n < periods[i + 1]) return (i / 2) + 1
+  }
   return null
 }
 
@@ -55,7 +58,14 @@ export default function TeacherPage() {
       }
     } else {
       const { data: sc } = await supabase.from('schedules').select('*').eq('grade_group',rd.bell_schedule).eq('profile',dayType).maybeSingle()
-      if (sc) periods=[sc.day_start,sc.p1,sc.p2,sc.p3,sc.p4,sc.p5,sc.p6].map(timeToMin)
+      if (sc) periods=[
+        sc.p1_start??sc.day_start, sc.p1_end,
+        sc.p2_start??sc.p1_end,   sc.p2_end,
+        sc.p3_start??sc.p2_end,   sc.p3_end,
+        sc.p4_start??sc.p3_end,   sc.p4_end,
+        sc.p5_start??sc.p4_end,   sc.p5_end,
+        sc.p6_start??sc.p5_end,   sc.p6_end,
+      ].map(timeToMin)
     }
     const period = await getCurrentPeriodAsync(periods); setCurrentPeriod(period)
     if (period) {
