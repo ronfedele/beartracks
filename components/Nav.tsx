@@ -19,17 +19,20 @@ const navLinks: Record<UserRole, { href: string; label: string; icon: string }[]
     { href: '/admin/schedules',   label: 'Schedules',  icon: '🗓️' },
     { href: '/admin/rooms',       label: 'Rooms',      icon: '🚪' },
     { href: '/admin/calendar',    label: 'Calendar',   icon: '📅' },
+    { href: '/admin/reports',     label: 'Reports',    icon: '📈' },
     { href: '/admin/settings',    label: 'Settings',   icon: '⚙️' },
     { href: '/monitor',           label: 'Monitor',    icon: '🖥️' },
   ],
   monitor: [
     { href: '/monitor',           label: 'Live View',  icon: '🖥️' },
     { href: '/monitor/log',       label: 'Log',        icon: '📋' },
+    { href: '/monitor/reports',   label: 'Reports',    icon: '📈' },
     { href: '/teacher',           label: 'Teacher',    icon: '🏫' },
   ],
   teacher: [
     { href: '/teacher',           label: 'My Class',   icon: '🏫' },
     { href: '/teacher/log',       label: 'Pass Log',   icon: '📋' },
+    { href: '/teacher/reports',   label: 'Reports',    icon: '📈' },
   ],
   terminal: [],
 }
