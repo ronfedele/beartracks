@@ -54,7 +54,13 @@ export default function TeacherPage() {
       const { data: scheds } = await supabase.from('schedules').select('*').eq('profile', dayType).in('grade_group',[7,8])
       if (vc && scheds) {
         const s7 = scheds.find((s:any)=>s.grade_group===7), s8=scheds.find((s:any)=>s.grade_group===8)
-        if (s7&&s8) { const keys=['day_start','p1','p2','p3','p4','p5','p6']; const g=[7,vc.p1_group,vc.p2_group,vc.p3_group,vc.p4_group,vc.p5_group,vc.p6_group]; periods=keys.map((k,i)=>timeToMin((g[i]===7?s7:s8)[k])) }
+        if (s7&&s8) {
+          const grps=[vc.p1_group,vc.p2_group,vc.p3_group,vc.p4_group,vc.p5_group,vc.p6_group]
+          for(let i=0;i<6;i++){
+            const src=grps[i]===7?s7:s8
+            periods.push(timeToMin(src[`p${i+1}_start`]??src.day_start), timeToMin(src[`p${i+1}_end`]))
+          }
+        }
       }
     } else {
       const { data: sc } = await supabase.from('schedules').select('*').eq('grade_group',rd.bell_schedule).eq('profile',dayType).maybeSingle()
