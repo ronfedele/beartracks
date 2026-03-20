@@ -31,7 +31,7 @@ export default function MonitorPage() {
       const { data } = await supabase.from('live_dashboard').select('*')
       const d = (data ?? []) as LiveDashboardRow[]
       setRows(d)
-      setRooms([...new Set(d.map(r => r.room))].sort())
+      setRooms(Array.from(new Set(d.map(r => r.room))).sort())
     }
     load()
     const ch = supabase.channel('monitor-live')
