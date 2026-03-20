@@ -108,8 +108,15 @@ export default function TeacherPage() {
       const { data:{user} } = await supabase.auth.getUser()
       if (!user) { window.location.href='/'; return }
       const { data:prof } = await supabase.from('user_profiles').select('*, room:rooms(*)').eq('id',user.id).maybeSingle()
-      if (!prof) return
-      setProfile(prof as any); const r = prof.room as Room; setRoom(r)
+      if (!prof) { window.location.href='/'; return }
+      setProfile(prof as any)
+      const r = prof.room as Room | null
+      if (!r || !r.id) {
+        // Teacher has no room assigned — show loading=false with empty state
+        setLoading(false)
+        return
+      }
+      setRoom(r)
       const { data:allStuds } = await supabase.from('students').select('*').eq('room_id',r.id).eq('active',true).order('last_name')
       setAllStudents(allStuds??[])
       const { data:dests } = await supabase.from('destinations').select('*').eq('active',true).order('sort_order')
@@ -188,6 +195,18 @@ export default function TeacherPage() {
   const waterLimit    = limits.find(l=>l.destination_type==='water')
 
   if (loading) return <div className="min-h-screen bg-bear-cream flex items-center justify-center"><div className="text-bear-muted">Loading…</div></div>
+
+  if (!room) return (
+    <div className="min-h-screen bg-bear-cream">
+      <Nav role={profile?.role ?? 'teacher'} displayName={profile?.display_name ?? profile?.email} />
+      <main className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <div className="text-5xl mb-4">🚪</div>
+        <h1 className="text-2xl font-display font-black text-bear-dark mb-2">No Room Assigned</h1>
+        <p className="text-bear-muted">Your account is not linked to a classroom yet. Ask your administrator to assign you to a room in Admin → Rooms or Admin → Settings.</p>
+        <p className="text-xs text-bear-muted mt-4">Logged in as: {profile?.email}</p>
+      </main>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-bear-cream">
